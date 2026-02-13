@@ -5,7 +5,7 @@ library(glue)
 library(nnet)
 library(gt)
 library(gtExtras)
-iris
+library(patchwork)
 
 iris
 str(iris)
@@ -64,7 +64,7 @@ text_df <- iris %>%
   mutate(label = glue("{species}\nMean: {round(sepal_len_avg, 2)} mm"),
          y = c(1.2, 1.0, 0.8))
 
-iris %>% 
+p1 <- iris %>% 
   group_by(species) %>% 
   mutate(sepal_len_avg = mean(sepal.length)) %>% 
   ggplot(aes(x = sepal.length, fill = species, colour = species)) +
@@ -97,29 +97,45 @@ iris %>%
   t.test(sepal.length ~ species, data = .)
 
 # Filter to two species
+# Choose any 2 out of the 3
+a <- "virginica"
+b <- "versicolor"
+
+# Filter to 2 species and FORCE level order: a then b
 iris_bin <- iris %>%
-  filter(species %in% c("setosa", "versicolor")) %>%
-  mutate(species = factor(species))
+  filter(species %in% c(a, b)) %>%
+  mutate(species = factor(species, levels = c(a, b)))
 
-# Fit logistic regression
-model <- glm(species ~ sepal.length,
-             data = iris_bin,
-             family = binomial)
+# Fit logistic regression: P(species == b | sepal.length)
+model <- glm(species ~ sepal.length, data = iris_bin, family = binomial)
 
-# Predict probability
-iris_bin <- iris_bin %>%
-  mutate(prob_setosa = predict(model, type = "response"))
+# Predict for a grid of sepal length values (use data range automatically)
+new_data <- tibble(
+  sepal.length = seq(min(iris_bin$sepal.length), max(iris_bin$sepal.length), by = 0.05)
+) %>%
+  mutate(
+    prob_b = predict(model, newdata = ., type = "response"),
+    prob_a = 1 - prob_b
+  )
+
+# Visualize probability curve (choose which one to show)
+ggplot(new_data, aes(sepal.length, prob_b)) +
+  geom_line(linewidth = 1) +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(
+    x = "Sepal length (cm)",
+    y = glue("Probability of {b}"),
+    title = glue("Binary logistic model: {a} vs {b}")
+  ) +
+  theme_minimal()
+
 
 # Predict for new values
-new_data <- tibble(sepal.length = seq(4, 7, by = 0.1))
+new_data <- tibble(sepal.length = seq(4, 7, by = 0.5))
 
-new_data <- new_data %>%
-  mutate(prob_setosa = predict(model, newdata = new_data, type = "response"))
+new_data %>%
+  mutate(probability_b = predict(model, newdata = new_data, type = "response"))
 
-# Visualize Propability Curve
-ggplot(new_data, aes(sepal.length, prob_setosa)) +
-  geom_line() +
-  labs(y = "Probability of Versicolor")
 
 # t.test - 3 Species
 
@@ -156,7 +172,7 @@ ggplot(probs_long,
   theme_minimal()
 
 # add rug marks showing where data points are
-ggplot(probs_long, aes(sepal.length, prob, colour = Species)) +
+p2 <- ggplot(probs_long, aes(sepal.length, prob, colour = Species)) +
   geom_line(linewidth = 1) +
   geom_rug(
     data = iris,
@@ -174,3 +190,5 @@ ggplot(probs_long, aes(sepal.length, prob, colour = Species)) +
   theme_minimal()
 
 predict(m3, newdata = tibble(sepal.length = 6.8), type = "probs") 
+
+p1 | p2
