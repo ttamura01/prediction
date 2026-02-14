@@ -81,7 +81,12 @@ p1 <- iris %>%
     x = "Sepal Length (mm)",
     y = "Density"
   ) +
-  theme_minimal()
+  theme_minimal(
+  ) +
+  theme(
+    legend.position = "plot",
+    legend.title = element_textbox_simple()
+  )
   
 # t.test
 iris %>% 
@@ -119,7 +124,7 @@ new_data <- tibble(
   )
 
 # Visualize probability curve (choose which one to show)
-ggplot(new_data, aes(sepal.length, prob_b)) +
+p2 <- ggplot(new_data, aes(sepal.length, prob_b)) +
   geom_line(linewidth = 1) +
   scale_y_continuous(limits = c(0, 1)) +
   labs(
@@ -172,7 +177,7 @@ ggplot(probs_long,
   theme_minimal()
 
 # add rug marks showing where data points are
-p2 <- ggplot(probs_long, aes(sepal.length, prob, colour = Species)) +
+p3 <- ggplot(probs_long, aes(sepal.length, prob, colour = Species)) +
   geom_line(linewidth = 1) +
   geom_rug(
     data = iris,
@@ -183,7 +188,7 @@ p2 <- ggplot(probs_long, aes(sepal.length, prob, colour = Species)) +
   ) +
   scale_y_continuous(limits = c(0, 1)) +
   labs(
-    title = "Predicted Species Probability from Sepal Length",
+    title = "Multinomial Model (3 classes)",
     x = "Sepal Length (cm)",
     y = "Predicted probability"
   ) +
@@ -191,4 +196,5 @@ p2 <- ggplot(probs_long, aes(sepal.length, prob, colour = Species)) +
 
 predict(m3, newdata = tibble(sepal.length = 6.8), type = "probs") 
 
-p1 | p2
+p1|(p2/p3)
+p3
